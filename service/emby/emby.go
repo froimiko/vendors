@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	pb "github.com/synctv-org/vendors/api/emby"
 	"github.com/synctv-org/vendors/conf"
 	"github.com/synctv-org/vendors/vendors/emby"
@@ -129,6 +130,13 @@ func (a *EmbyService) GetItems(ctx context.Context, req *pb.GetItemsReq) (*pb.Ge
 	}, nil
 }
 
+func logReachabilityRejection(category string, resultCount int) {
+	log.WithFields(log.Fields{
+		"category":     category,
+		"result_count": resultCount,
+	}).Warn("emby shared-root reachability rejected")
+}
+
 func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item, error) {
 	cli := emby.NewClient(req.GetHost(), emby.WithContext(ctx), emby.WithKey(req.GetToken()), emby.WithUserID(req.GetUserId()))
 	if req.GetRootItemId() == "" {
@@ -139,6 +147,7 @@ func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item
 		return item2pb(r), nil
 	}
 	if req.GetUserId() == "" || req.GetItemId() == "" || req.GetRootItemId() == "0" {
+		logReachabilityRejection("invalid_request", 0)
 		return nil, errors.New("invalid emby item reachability request")
 	}
 
@@ -149,9 +158,27 @@ func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item
 		emby.WithLimit(2),
 	)
 	if err != nil {
+		logReachabilityRejection("upstream_error", 0)
 		return nil, errors.New("emby item reachability query failed")
 	}
-	if r == nil || len(r.Items) != 1 || r.Items[0] == nil || r.Items[0].ID != req.GetItemId() {
+	if r == nil {
+		logReachabilityRejection("nil_response", 0)
+		return nil, errors.New("emby item is not reachable from shared root")
+	}
+	if len(r.Items) == 0 {
+		logReachabilityRejection("zero_results", 0)
+		return nil, errors.New("emby item is not reachable from shared root")
+	}
+	if len(r.Items) != 1 {
+		logReachabilityRejection("multiple_results", len(r.Items))
+		return nil, errors.New("emby item is not reachable from shared root")
+	}
+	if r.Items[0] == nil {
+		logReachabilityRejection("nil_item", 1)
+		return nil, errors.New("emby item is not reachable from shared root")
+	}
+	if r.Items[0].ID != req.GetItemId() {
+		logReachabilityRejection("id_mismatch", 1)
 		return nil, errors.New("emby item is not reachable from shared root")
 	}
 
