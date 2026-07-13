@@ -69,22 +69,6 @@ func WithParentID(parentID string) QueryFunc {
 	}
 }
 
-func WithIDs(ids ...string) QueryFunc {
-	return func(o map[string]string) {
-		if len(ids) != 0 {
-			o["Ids"] = strings.Join(ids, ",")
-		}
-	}
-}
-
-func WithQueryUserID(userID string) QueryFunc {
-	return func(o map[string]string) {
-		if userID != "" {
-			o["UserId"] = userID
-		}
-	}
-}
-
 func WithSortBy(sortBy string) QueryFunc {
 	return func(o map[string]string) {
 		o["SortBy"] = sortBy
