@@ -1229,6 +1229,8 @@ components:
                     type: string
                 itemId:
                     type: string
+                userId:
+                    type: string
         api.emby.GetItemsReq:
             type: object
             properties:

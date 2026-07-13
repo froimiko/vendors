@@ -129,8 +129,8 @@ func (a *EmbyService) GetItems(ctx context.Context, req *pb.GetItemsReq) (*pb.Ge
 }
 
 func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item, error) {
-	cli := emby.NewClient(req.GetHost(), emby.WithContext(ctx), emby.WithKey(req.GetToken()))
-	r, err := cli.GetItem(req.GetItemId())
+	cli := emby.NewClient(req.GetHost(), emby.WithContext(ctx), emby.WithKey(req.GetToken()), emby.WithUserID(req.GetUserId()))
+	r, err := cli.UserItemsByID(req.GetItemId())
 	if err != nil {
 		return nil, err
 	}
