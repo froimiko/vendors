@@ -53,12 +53,12 @@ func TestGetItemProvesVirtualRootReachability(t *testing.T) {
 	)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got, want := r.URL.Path, "/emby/Users/"+userID+"/Items"; got != want {
+		if got, want := r.URL.Path, "/emby/Items"; got != want {
 			t.Errorf("path = %q, want %q", got, want)
 		}
 		query := r.URL.Query()
 		for key, want := range map[string]string{
-			"ParentId": rootID, "Recursive": "true", "Ids": itemID, "Limit": "2",
+			"UserId": userID, "ParentId": rootID, "Recursive": "true", "Ids": itemID, "Limit": "2",
 		} {
 			if got := query.Get(key); got != want {
 				t.Errorf("query %s = %q, want %q", key, got, want)
@@ -84,6 +84,26 @@ func TestGetItemProvesVirtualRootReachability(t *testing.T) {
 	}
 	if got := item.GetParentId(); got != rootID {
 		t.Fatalf("ParentId proof = %q, want %q", got, rootID)
+	}
+}
+
+func TestGetItemUsesDocumentedItemsQueryForRootReachability(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/emby/Items" {
+			t.Fatalf("path = %q, want documented /emby/Items endpoint", r.URL.Path)
+		}
+		if r.URL.Query().Get("UserId") == "" {
+			t.Fatal("UserId query is missing")
+		}
+		_, _ = w.Write([]byte("{\"Items\":[{\"Id\":\"item-1\"}],\"TotalRecordCount\":1}"))
+	}))
+	defer server.Close()
+
+	_, err := (&EmbyService{}).GetItem(context.Background(), &pb.GetItemReq{
+		Host: server.URL, Token: "token-1", ItemId: "item-1", UserId: "user-1", RootItemId: "root-1",
+	})
+	if err != nil {
+		t.Fatalf("GetItem() error = %v", err)
 	}
 }
 

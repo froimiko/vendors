@@ -77,6 +77,14 @@ func WithIDs(ids ...string) QueryFunc {
 	}
 }
 
+func WithQueryUserID(userID string) QueryFunc {
+	return func(o map[string]string) {
+		if userID != "" {
+			o["UserId"] = userID
+		}
+	}
+}
+
 func WithSortBy(sortBy string) QueryFunc {
 	return func(o map[string]string) {
 		o["SortBy"] = sortBy

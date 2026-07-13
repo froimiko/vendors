@@ -151,7 +151,8 @@ func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item
 		return nil, errors.New("invalid emby item reachability request")
 	}
 
-	r, err := cli.UserItems(
+	r, err := cli.GetItems(
+		emby.WithQueryUserID(req.GetUserId()),
 		emby.WithParentID(req.GetRootItemId()),
 		emby.WithRecursive(),
 		emby.WithIDs(req.GetItemId()),
