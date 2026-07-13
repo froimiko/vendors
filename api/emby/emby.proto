@@ -154,6 +154,7 @@ message GetItemReq {
   string token = 2;
   string itemId = 3;
   string userId = 4;
+  string rootItemId = 5;
 }
 
 message SystemInfoReq {

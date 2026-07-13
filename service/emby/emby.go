@@ -2,6 +2,7 @@ package emby
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	pb "github.com/synctv-org/vendors/api/emby"
@@ -130,11 +131,33 @@ func (a *EmbyService) GetItems(ctx context.Context, req *pb.GetItemsReq) (*pb.Ge
 
 func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item, error) {
 	cli := emby.NewClient(req.GetHost(), emby.WithContext(ctx), emby.WithKey(req.GetToken()), emby.WithUserID(req.GetUserId()))
-	r, err := cli.UserItemsByID(req.GetItemId())
-	if err != nil {
-		return nil, err
+	if req.GetRootItemId() == "" {
+		r, err := cli.UserItemsByID(req.GetItemId())
+		if err != nil {
+			return nil, err
+		}
+		return item2pb(r), nil
 	}
-	return item2pb(r), nil
+	if req.GetUserId() == "" || req.GetItemId() == "" || req.GetRootItemId() == "0" {
+		return nil, errors.New("invalid emby item reachability request")
+	}
+
+	r, err := cli.UserItems(
+		emby.WithParentID(req.GetRootItemId()),
+		emby.WithRecursive(),
+		emby.WithIDs(req.GetItemId()),
+		emby.WithLimit(2),
+	)
+	if err != nil {
+		return nil, errors.New("emby item reachability query failed")
+	}
+	if r == nil || len(r.Items) != 1 || r.Items[0] == nil || r.Items[0].ID != req.GetItemId() {
+		return nil, errors.New("emby item is not reachable from shared root")
+	}
+
+	item := item2pb(r.Items[0])
+	item.ParentId = req.GetRootItemId()
+	return item, nil
 }
 
 func (a *EmbyService) FsList(ctx context.Context, req *pb.FsListReq) (*pb.FsListResp, error) {
