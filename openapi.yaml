@@ -1371,6 +1371,20 @@ components:
                     type: string
                 protocol:
                     type: string
+                deliveryUrl:
+                    type: string
+                deliveryMethod:
+                    type: string
+                isTextSubtitleStream:
+                    type: boolean
+                isExternal:
+                    type: boolean
+                supportsExternalStream:
+                    type: boolean
+                subtitleLocationType:
+                    type: string
+                mimeType:
+                    type: string
         api.emby.Path:
             type: object
             properties:

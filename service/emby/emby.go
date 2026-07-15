@@ -47,15 +47,22 @@ func mediaStreamInfo2pb(msi []emby.MediaStreams) []*pb.MediaStreamInfo {
 	pbmsi := make([]*pb.MediaStreamInfo, len(msi))
 	for i, msi := range msi {
 		pbmsi[i] = &pb.MediaStreamInfo{
-			Codec:           msi.Codec,
-			Language:        msi.Language,
-			Type:            msi.Type,
-			Title:           msi.Title,
-			DisplayTitle:    msi.DisplayTitle,
-			DisplayLanguage: msi.DisplayLanguage,
-			IsDefault:       msi.IsDefault,
-			Index:           msi.Index,
-			Protocol:        msi.Protocol,
+			Codec:                  msi.Codec,
+			Language:               msi.Language,
+			Type:                   msi.Type,
+			Title:                  msi.Title,
+			DisplayTitle:           msi.DisplayTitle,
+			DisplayLanguage:        msi.DisplayLanguage,
+			IsDefault:              msi.IsDefault,
+			Index:                  msi.Index,
+			Protocol:               msi.Protocol,
+			DeliveryUrl:            msi.DeliveryURL,
+			DeliveryMethod:         msi.DeliveryMethod,
+			IsTextSubtitleStream:   msi.IsTextSubtitleStream,
+			IsExternal:             msi.IsExternal,
+			SupportsExternalStream: msi.SupportsExternalStream,
+			SubtitleLocationType:   msi.SubtitleLocationType,
+			MimeType:               msi.MimeType,
 		}
 	}
 	return pbmsi

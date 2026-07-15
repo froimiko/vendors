@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	pb "github.com/synctv-org/vendors/api/emby"
+	vendoremby "github.com/synctv-org/vendors/vendors/emby"
 )
 
 func TestGetItemUsesUserItemEndpoint(t *testing.T) {
@@ -72,5 +74,70 @@ func TestGetItemIgnoresLegacyRootItemIDAndUsesUserItemEndpoint(t *testing.T) {
 	}
 	if item.GetParentId() != parentID {
 		t.Fatalf("ParentId = %q, want physical value %q", item.GetParentId(), parentID)
+	}
+}
+
+func TestMediaStreamInfo2PB(t *testing.T) {
+	tests := []struct {
+		name string
+		in   vendoremby.MediaStreams
+		want *pb.MediaStreamInfo
+	}{
+		{
+			name: "complete stream",
+			in: vendoremby.MediaStreams{
+				Codec:                  "ass",
+				Language:               "eng",
+				Type:                   "Subtitle",
+				Title:                  "English",
+				DisplayTitle:           "English ASS",
+				DisplayLanguage:        "English",
+				IsDefault:              true,
+				Index:                  4,
+				Protocol:               "File",
+				DeliveryURL:            "/Videos/item/Subtitles/4/Stream.ass?api_key=redacted",
+				DeliveryMethod:         "External",
+				IsTextSubtitleStream:   true,
+				IsExternal:             true,
+				SupportsExternalStream: true,
+				SubtitleLocationType:   "External",
+				MimeType:               "text/x-ssa",
+			},
+			want: &pb.MediaStreamInfo{
+				Codec:                  "ass",
+				Language:               "eng",
+				Type:                   "Subtitle",
+				Title:                  "English",
+				DisplayTitle:           "English ASS",
+				DisplayLanguage:        "English",
+				IsDefault:              true,
+				Index:                  4,
+				Protocol:               "File",
+				DeliveryUrl:            "/Videos/item/Subtitles/4/Stream.ass?api_key=redacted",
+				DeliveryMethod:         "External",
+				IsTextSubtitleStream:   true,
+				IsExternal:             true,
+				SupportsExternalStream: true,
+				SubtitleLocationType:   "External",
+				MimeType:               "text/x-ssa",
+			},
+		},
+		{
+			name: "false and empty values",
+			in:   vendoremby.MediaStreams{},
+			want: &pb.MediaStreamInfo{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mediaStreamInfo2pb([]vendoremby.MediaStreams{tt.in})
+			if len(got) != 1 {
+				t.Fatalf("mediaStreamInfo2pb() length = %d, want 1", len(got))
+			}
+			if !reflect.DeepEqual(got[0], tt.want) {
+				t.Errorf("mediaStreamInfo2pb() = %#v, want %#v", got[0], tt.want)
+			}
+		})
 	}
 }

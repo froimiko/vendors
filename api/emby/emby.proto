@@ -115,6 +115,13 @@ message MediaStreamInfo {
   bool isDefault = 7;
   uint64 index = 8;
   string protocol = 9;
+  string deliveryUrl = 10;
+  string deliveryMethod = 11;
+  bool isTextSubtitleStream = 12;
+  bool isExternal = 13;
+  bool supportsExternalStream = 14;
+  string subtitleLocationType = 15;
+  string mimeType = 16;
 }
 
 message MediaSourceInfo {
