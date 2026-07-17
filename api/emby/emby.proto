@@ -239,8 +239,9 @@ message PlaybackInfoReq {
   string itemId = 4;
   string mediaSourceId = 5;
   int32 audioStreamIndex = 6;
-  int32 subtitleStreamIndex = 7;
+  optional int32 subtitleStreamIndex = 7;
   int64 maxStreamingBitrate = 8;
+  bool nonPlayback = 9;
 }
 
 message PlaybackInfoResp {

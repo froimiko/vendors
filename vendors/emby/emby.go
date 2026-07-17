@@ -567,7 +567,7 @@ type PlayBackReq struct {
 	MaxStreamingBitrate            int           `json:"MaxStreamingBitrate,omitempty"`
 	StartTimeTicks                 int           `json:"StartTimeTicks,omitempty"`
 	AudioStreamIndex               int           `json:"AudioStreamIndex,omitempty"`
-	SubtitleStreamIndex            int           `json:"SubtitleStreamIndex,omitempty"`
+	SubtitleStreamIndex            *int          `json:"SubtitleStreamIndex,omitempty"`
 	MaxAudioChannels               int           `json:"MaxAudioChannels,omitempty"`
 	EnableDirectPlay               bool          `json:"EnableDirectPlay,omitempty"`
 	AllowInterlacedVideoStreamCopy bool          `json:"AllowInterlacedVideoStreamCopy,omitempty"`

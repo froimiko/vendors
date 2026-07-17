@@ -1421,6 +1421,8 @@ components:
                     format: int32
                 maxStreamingBitrate:
                     type: string
+                nonPlayback:
+                    type: boolean
         api.emby.PlaybackInfoResp:
             type: object
             properties:

@@ -276,7 +276,7 @@ func WithMaxStreamingBitrate(bitrate int) UserPlaybackInfoOption {
 
 func WithSubtitleStreamIndex(index int) UserPlaybackInfoOption {
 	return func(p *PlayBackReq) {
-		p.SubtitleStreamIndex = index
+		p.SubtitleStreamIndex = &index
 	}
 }
 
@@ -289,6 +289,14 @@ func WithAudioStreamIndex(index int) UserPlaybackInfoOption {
 func WithMediaSourceID(id string) UserPlaybackInfoOption {
 	return func(p *PlayBackReq) {
 		p.MediaSourceID = id
+	}
+}
+
+func WithNonPlayback() UserPlaybackInfoOption {
+	return func(p *PlayBackReq) {
+		p.IsPlayback = false
+		p.AutoOpenLiveStream = false
+		p.EnableTranscoding = false
 	}
 }
 
@@ -654,6 +662,9 @@ func (c *Client) UserPlaybackInfo(id string, opts ...UserPlaybackInfoOption) (*P
 		StartTimeTicks:      0,
 		IsPlayback:          true,
 		AutoOpenLiveStream:  true,
+		EnableDirectPlay:    true,
+		EnableDirectStream:  true,
+		EnableTranscoding:   true,
 		MaxStreamingBitrate: 8000001,
 	}
 	for _, opt := range opts {

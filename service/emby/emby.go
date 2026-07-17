@@ -326,7 +326,7 @@ func (a *EmbyService) PlaybackInfo(ctx context.Context, req *pb.PlaybackInfoReq)
 	if req.GetMediaSourceId() != "" {
 		opts = append(opts, emby.WithMediaSourceID(req.GetMediaSourceId()))
 	}
-	if req.GetSubtitleStreamIndex() != 0 {
+	if req.SubtitleStreamIndex != nil {
 		opts = append(opts, emby.WithSubtitleStreamIndex(int(req.GetSubtitleStreamIndex())))
 	}
 	if req.GetAudioStreamIndex() != 0 {
@@ -334,6 +334,9 @@ func (a *EmbyService) PlaybackInfo(ctx context.Context, req *pb.PlaybackInfoReq)
 	}
 	if req.GetMaxStreamingBitrate() != 0 {
 		opts = append(opts, emby.WithMaxStreamingBitrate(int(req.GetMaxStreamingBitrate())))
+	}
+	if req.GetNonPlayback() {
+		opts = append(opts, emby.WithNonPlayback())
 	}
 	r, err := cli.UserPlaybackInfo(req.GetItemId(), opts...)
 	if err != nil {
