@@ -637,6 +637,10 @@ func (c *Client) UserPlaybackInfo(id string, opts ...UserPlaybackInfoOption) (*P
 					Format: "ssa",
 					Method: "External",
 				},
+				{
+					Format: "srt",
+					Method: "External",
+				},
 			},
 			ResponseProfiles: []ResponseProfile{
 				{

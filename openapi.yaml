@@ -1350,6 +1350,10 @@ components:
                     type: string
                 transcodingUrl:
                     type: string
+                itemIdPresent:
+                    type: boolean
+                itemIdMatchesRequested:
+                    type: boolean
         api.emby.MediaStreamInfo:
             type: object
             properties:
@@ -1385,6 +1389,10 @@ components:
                     type: string
                 mimeType:
                     type: string
+                itemIdPresent:
+                    type: boolean
+                itemIdMatchesRequested:
+                    type: boolean
         api.emby.Path:
             type: object
             properties:

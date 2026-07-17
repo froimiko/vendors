@@ -43,9 +43,10 @@ func (a *EmbyService) Me(ctx context.Context, req *pb.MeReq) (*pb.MeResp, error)
 	}, nil
 }
 
-func mediaStreamInfo2pb(msi []emby.MediaStreams) []*pb.MediaStreamInfo {
+func mediaStreamInfo2pb(msi []emby.MediaStreams, requestedItemID string) []*pb.MediaStreamInfo {
 	pbmsi := make([]*pb.MediaStreamInfo, len(msi))
 	for i, msi := range msi {
+		itemIDPresent := msi.ItemID != ""
 		pbmsi[i] = &pb.MediaStreamInfo{
 			Codec:                  msi.Codec,
 			Language:               msi.Language,
@@ -63,14 +64,17 @@ func mediaStreamInfo2pb(msi []emby.MediaStreams) []*pb.MediaStreamInfo {
 			SupportsExternalStream: msi.SupportsExternalStream,
 			SubtitleLocationType:   msi.SubtitleLocationType,
 			MimeType:               msi.MimeType,
+			ItemIdPresent:          itemIDPresent,
+			ItemIdMatchesRequested: itemIDPresent && requestedItemID != "" && msi.ItemID == requestedItemID,
 		}
 	}
 	return pbmsi
 }
 
-func mediaSources2pb(ms []emby.MediaSources) []*pb.MediaSourceInfo {
+func mediaSources2pb(ms []emby.MediaSources, requestedItemID string) []*pb.MediaSourceInfo {
 	pbms := make([]*pb.MediaSourceInfo, len(ms))
 	for i, msi := range ms {
+		itemIDPresent := msi.ItemID != ""
 		pbms[i] = &pb.MediaSourceInfo{
 			Id:                         msi.ID,
 			Name:                       msi.Name,
@@ -79,15 +83,17 @@ func mediaSources2pb(ms []emby.MediaSources) []*pb.MediaSourceInfo {
 			Container:                  msi.Container,
 			DefaultSubtitleStreamIndex: msi.DefaultSubtitleStreamIndex,
 			DefaultAudioStreamIndex:    msi.DefaultAudioStreamIndex,
-			MediaStreamInfo:            mediaStreamInfo2pb(msi.MediaStreams),
+			MediaStreamInfo:            mediaStreamInfo2pb(msi.MediaStreams, requestedItemID),
 			DirectPlayUrl:              msi.DirectStreamURL,
 			TranscodingUrl:             msi.TranscodingURL,
+			ItemIdPresent:              itemIDPresent,
+			ItemIdMatchesRequested:     itemIDPresent && requestedItemID != "" && msi.ItemID == requestedItemID,
 		}
 	}
 	return pbms
 }
 
-func item2pb(item *emby.Items) *pb.Item {
+func item2pb(item *emby.Items, requestedItemID string) *pb.Item {
 	pi := &pb.Item{
 		Id:              item.ID,
 		Name:            item.Name,
@@ -98,7 +104,7 @@ func item2pb(item *emby.Items) *pb.Item {
 		SeasonId:        item.SeasonID,
 		SeriesName:      item.SeriesName,
 		SeriesId:        item.SeriesID,
-		MediaSourceInfo: mediaSources2pb(item.MediaSources),
+		MediaSourceInfo: mediaSources2pb(item.MediaSources, requestedItemID),
 		CollectionType:  item.CollectionType,
 	}
 	return pi
@@ -127,7 +133,7 @@ func (a *EmbyService) GetItems(ctx context.Context, req *pb.GetItemsReq) (*pb.Ge
 	}
 	items := make([]*pb.Item, len(r.Items))
 	for i, item := range r.Items {
-		items[i] = item2pb(item)
+		items[i] = item2pb(item, "")
 	}
 	return &pb.GetItemsResp{
 		Items:            items,
@@ -141,7 +147,7 @@ func (a *EmbyService) GetItem(ctx context.Context, req *pb.GetItemReq) (*pb.Item
 	if err != nil {
 		return nil, err
 	}
-	return item2pb(r), nil
+	return item2pb(r, req.GetItemId()), nil
 }
 
 func (a *EmbyService) FsList(ctx context.Context, req *pb.FsListReq) (*pb.FsListResp, error) {
@@ -259,7 +265,7 @@ func (a *EmbyService) FsList(ctx context.Context, req *pb.FsListReq) (*pb.FsList
 	}
 	items := make([]*pb.Item, len(resp.Items))
 	for i, item := range resp.Items {
-		items[i] = item2pb(item)
+		items[i] = item2pb(item, "")
 	}
 	return &pb.FsListResp{
 		Items: items,
@@ -335,7 +341,7 @@ func (a *EmbyService) PlaybackInfo(ctx context.Context, req *pb.PlaybackInfoReq)
 	}
 	return &pb.PlaybackInfoResp{
 		PlaySessionID:   r.PlaySessionID,
-		MediaSourceInfo: mediaSources2pb(r.MediaSources),
+		MediaSourceInfo: mediaSources2pb(r.MediaSources, req.GetItemId()),
 	}, nil
 }
 

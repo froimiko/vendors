@@ -78,13 +78,14 @@ func TestGetItemIgnoresLegacyRootItemIDAndUsesUserItemEndpoint(t *testing.T) {
 }
 
 func TestMediaStreamInfo2PB(t *testing.T) {
+	const requestedItemID = "requested-item"
 	tests := []struct {
 		name string
 		in   vendoremby.MediaStreams
 		want *pb.MediaStreamInfo
 	}{
 		{
-			name: "complete stream",
+			name: "complete matching stream",
 			in: vendoremby.MediaStreams{
 				Codec:                  "ass",
 				Language:               "eng",
@@ -95,6 +96,7 @@ func TestMediaStreamInfo2PB(t *testing.T) {
 				IsDefault:              true,
 				Index:                  4,
 				Protocol:               "File",
+				ItemID:                 requestedItemID,
 				DeliveryURL:            "/Videos/item/Subtitles/4/Stream.ass?api_key=redacted",
 				DeliveryMethod:         "External",
 				IsTextSubtitleStream:   true,
@@ -120,6 +122,8 @@ func TestMediaStreamInfo2PB(t *testing.T) {
 				SupportsExternalStream: true,
 				SubtitleLocationType:   "External",
 				MimeType:               "text/x-ssa",
+				ItemIdPresent:          true,
+				ItemIdMatchesRequested: true,
 			},
 		},
 		{
@@ -131,13 +135,34 @@ func TestMediaStreamInfo2PB(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := mediaStreamInfo2pb([]vendoremby.MediaStreams{tt.in})
+			got := mediaStreamInfo2pb([]vendoremby.MediaStreams{tt.in}, requestedItemID)
 			if len(got) != 1 {
 				t.Fatalf("mediaStreamInfo2pb() length = %d, want 1", len(got))
 			}
 			if !reflect.DeepEqual(got[0], tt.want) {
-				t.Errorf("mediaStreamInfo2pb() = %#v, want %#v", got[0], tt.want)
+				t.Error("mediaStreamInfo2pb() did not preserve the expected safe contract")
 			}
 		})
+	}
+}
+
+func TestMediaSources2PBMapsOnlyItemIdentityProofs(t *testing.T) {
+	const requestedItemID = "requested-item"
+	got := mediaSources2pb([]vendoremby.MediaSources{{
+		ID:     "source",
+		ItemID: requestedItemID,
+		MediaStreams: []vendoremby.MediaStreams{{
+			Type: "Subtitle", ItemID: "different-item",
+		}},
+	}}, requestedItemID)
+	if len(got) != 1 || len(got[0].GetMediaStreamInfo()) != 1 {
+		t.Fatal("media source mapping shape changed")
+	}
+	if !got[0].GetItemIdPresent() || !got[0].GetItemIdMatchesRequested() {
+		t.Error("source item identity proof was not mapped")
+	}
+	stream := got[0].GetMediaStreamInfo()[0]
+	if !stream.GetItemIdPresent() || stream.GetItemIdMatchesRequested() {
+		t.Error("stream item identity proof was not mapped")
 	}
 }

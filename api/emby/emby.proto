@@ -122,6 +122,8 @@ message MediaStreamInfo {
   bool supportsExternalStream = 14;
   string subtitleLocationType = 15;
   string mimeType = 16;
+  bool itemIdPresent = 17;
+  bool itemIdMatchesRequested = 18;
 }
 
 message MediaSourceInfo {
@@ -135,6 +137,8 @@ message MediaSourceInfo {
   repeated MediaStreamInfo mediaStreamInfo = 8;
   string directPlayUrl = 9;
   string transcodingUrl = 10;
+  bool itemIdPresent = 11;
+  bool itemIdMatchesRequested = 12;
 }
 
 message Item {

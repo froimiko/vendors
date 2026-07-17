@@ -8,50 +8,47 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func TestMediaStreamInfoDescriptor(t *testing.T) {
-	message := (&MediaStreamInfo{}).ProtoReflect()
-	fields := message.Descriptor().Fields()
-	if got, want := fields.Len(), 16; got != want {
-		t.Fatalf("Fields().Len() = %d, want %d", got, want)
-	}
-	for number := protoreflect.FieldNumber(1); number <= 9; number++ {
-		if field := fields.ByNumber(number); field == nil {
-			t.Fatalf("legacy field %d not found", number)
-		}
-	}
-
+func TestMediaIdentityProofDescriptors(t *testing.T) {
 	tests := []struct {
-		name     protoreflect.Name
-		jsonName string
-		number   protoreflect.FieldNumber
-		kind     protoreflect.Kind
+		name       string
+		message    protoreflect.Message
+		legacyLen  int
+		presentNum protoreflect.FieldNumber
+		matchesNum protoreflect.FieldNumber
 	}{
-		{"deliveryUrl", "deliveryUrl", 10, protoreflect.StringKind},
-		{"deliveryMethod", "deliveryMethod", 11, protoreflect.StringKind},
-		{"isTextSubtitleStream", "isTextSubtitleStream", 12, protoreflect.BoolKind},
-		{"isExternal", "isExternal", 13, protoreflect.BoolKind},
-		{"supportsExternalStream", "supportsExternalStream", 14, protoreflect.BoolKind},
-		{"subtitleLocationType", "subtitleLocationType", 15, protoreflect.StringKind},
-		{"mimeType", "mimeType", 16, protoreflect.StringKind},
+		{"media stream", (&MediaStreamInfo{}).ProtoReflect(), 16, 17, 18},
+		{"media source", (&MediaSourceInfo{}).ProtoReflect(), 10, 11, 12},
 	}
 
 	for _, tt := range tests {
-		t.Run(string(tt.name), func(t *testing.T) {
-			field := fields.ByName(tt.name)
-			if field == nil {
-				t.Fatalf("field %q not found", tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			fields := tt.message.Descriptor().Fields()
+			if got, want := fields.Len(), tt.legacyLen+2; got != want {
+				t.Fatalf("safe identity field count = %d, want %d", got, want)
 			}
-			if got := field.JSONName(); got != tt.jsonName {
-				t.Errorf("JSONName() = %q, want %q", got, tt.jsonName)
+			for number := protoreflect.FieldNumber(1); number <= protoreflect.FieldNumber(tt.legacyLen); number++ {
+				if field := fields.ByNumber(number); field == nil {
+					t.Fatalf("legacy field %d not found", number)
+				}
 			}
-			if got := field.Number(); got != tt.number {
-				t.Errorf("Number() = %d, want %d", got, tt.number)
+			if fields.ByName("itemId") != nil {
+				t.Fatal("raw item ID must not cross the protobuf boundary")
 			}
-			if got := field.Kind(); got != tt.kind {
-				t.Errorf("Kind() = %v, want %v", got, tt.kind)
-			}
-			if got := fields.ByNumber(tt.number); got != field {
-				t.Errorf("Fields().ByNumber(%d) did not return field %q", tt.number, tt.name)
+			for _, expected := range []struct {
+				name     protoreflect.Name
+				jsonName string
+				number   protoreflect.FieldNumber
+			}{
+				{"itemIdPresent", "itemIdPresent", tt.presentNum},
+				{"itemIdMatchesRequested", "itemIdMatchesRequested", tt.matchesNum},
+			} {
+				field := fields.ByName(expected.name)
+				if field == nil {
+					t.Fatalf("safe identity field %q not found", expected.name)
+				}
+				if field.JSONName() != expected.jsonName || field.Number() != expected.number || field.Kind() != protoreflect.BoolKind {
+					t.Errorf("safe identity field %q has an unexpected descriptor", expected.name)
+				}
 			}
 		})
 	}
@@ -86,7 +83,7 @@ func TestMediaStreamInfoRoundTrip(t *testing.T) {
 		t.Fatalf("proto.Unmarshal() error = %v", err)
 	}
 	if !proto.Equal(want, &fromWire) {
-		t.Fatalf("binary round trip = %v, want %v", &fromWire, want)
+		t.Fatal("binary round trip changed media stream data")
 	}
 
 	jsonData, err := protojson.Marshal(want)
@@ -98,6 +95,61 @@ func TestMediaStreamInfoRoundTrip(t *testing.T) {
 		t.Fatalf("protojson.Unmarshal() error = %v", err)
 	}
 	if !proto.Equal(want, &fromJSON) {
-		t.Fatalf("JSON round trip = %v, want %v", &fromJSON, want)
+		t.Fatal("JSON round trip changed media stream data")
 	}
+}
+
+func TestMediaIdentityProofRoundTrip(t *testing.T) {
+	want := &MediaSourceInfo{MediaStreamInfo: []*MediaStreamInfo{{}}}
+	setProof := func(message protoreflect.Message, name protoreflect.Name, value bool) {
+		t.Helper()
+		field := message.Descriptor().Fields().ByName(name)
+		if field == nil {
+			t.Fatalf("safe identity field %q not found", name)
+		}
+		message.Set(field, protoreflect.ValueOfBool(value))
+	}
+	setProof(want.ProtoReflect(), "itemIdPresent", true)
+	setProof(want.ProtoReflect(), "itemIdMatchesRequested", true)
+	setProof(want.MediaStreamInfo[0].ProtoReflect(), "itemIdPresent", true)
+	setProof(want.MediaStreamInfo[0].ProtoReflect(), "itemIdMatchesRequested", false)
+
+	assertProofs := func(message *MediaSourceInfo) {
+		t.Helper()
+		for _, expected := range []struct {
+			message protoreflect.Message
+			name    protoreflect.Name
+			value   bool
+		}{
+			{message.ProtoReflect(), "itemIdPresent", true},
+			{message.ProtoReflect(), "itemIdMatchesRequested", true},
+			{message.MediaStreamInfo[0].ProtoReflect(), "itemIdPresent", true},
+			{message.MediaStreamInfo[0].ProtoReflect(), "itemIdMatchesRequested", false},
+		} {
+			field := expected.message.Descriptor().Fields().ByName(expected.name)
+			if field == nil || expected.message.Get(field).Bool() != expected.value {
+				t.Errorf("safe identity proof %q did not survive round trip", expected.name)
+			}
+		}
+	}
+
+	wire, err := proto.Marshal(want)
+	if err != nil {
+		t.Fatalf("proto.Marshal() error = %v", err)
+	}
+	var fromWire MediaSourceInfo
+	if err := proto.Unmarshal(wire, &fromWire); err != nil {
+		t.Fatalf("proto.Unmarshal() error = %v", err)
+	}
+	assertProofs(&fromWire)
+
+	jsonData, err := protojson.Marshal(want)
+	if err != nil {
+		t.Fatalf("protojson.Marshal() error = %v", err)
+	}
+	var fromJSON MediaSourceInfo
+	if err := protojson.Unmarshal(jsonData, &fromJSON); err != nil {
+		t.Fatalf("protojson.Unmarshal() error = %v", err)
+	}
+	assertProofs(&fromJSON)
 }
